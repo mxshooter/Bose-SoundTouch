@@ -90,7 +90,8 @@ Host: events.api.bosecm.com
 POST /v1/scmudc/A81B6A536A98
 ...
 
-> {% 
+{% raw %}
+> {%
     // Response: 200 OK
     // SCMUDC Event Analysis:
     // - Origin: Internal System (device)
@@ -99,6 +100,7 @@ POST /v1/scmudc/A81B6A536A98
     // - Content: Billie Eilish - bad guy (instrumental version)
     // - Account: gesellix
 %}
+{% endraw %}
 ```
 
 ## Web UI Enhancement

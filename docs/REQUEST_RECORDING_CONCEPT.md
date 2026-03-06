@@ -24,9 +24,11 @@ Authorization: Bearer jGwEmFWr...
 
 {"envelope":{"monoTime":234906,"payloadProtocolVersion":"3.1","payloadType":"scmudc","protocolVersion":"1.0","time":"2026-02-25T23:03:14.976349+00:00","uniqueId":"A81B6A536A98"},"payload":{"deviceInfo":{"boseID":"3230304","deviceID":"A81B6A536A98","deviceType":"SoundTouch 10","serialNumber":"I6332527703739342000020","softwareVersion":"27.0.6.46330.5043500 epdbuild.trunk.hepdswbld04.2022-08-04T11:20:29","systemSerialNumber":"069231P63364828AE"},"events":[{"data":{"play-state":"PAUSE_STATE"},"monoTime":234904,"time":"2026-02-25T23:03:14.973466+00:00","type":"play-state-changed"}]}}
 
-> {% 
+{% raw %}
+> {%
     // Response: 200 OK
 %}
+{% endraw %}
 ```
 
 **Mirror Recording** (missing body):
@@ -40,11 +42,13 @@ Authorization: Bearer jGwEmFWr...
 
 
 
-> {% 
+{% raw %}
+> {%
     // Response: 200 OK
     // Headers:
     // X-Proxy-Origin: upstream-mirror
 %}
+{% endraw %}
 ```
 
 ### Issue 2: Request Flow Complexity
@@ -135,7 +139,7 @@ func (s *Server) SnapshotMiddleware(next http.Handler) http.Handler {
 
         // 3. Inject pointer into context
         ctx := context.WithValue(r.Context(), SnapshotKey, snapshot)
-        
+
         // 4. Restore r.Body for downstream compatibility
         r = r.WithContext(ctx)
         r.Body = io.NopCloser(bytes.NewReader(snapshot.Body))
@@ -209,7 +213,7 @@ func (rm *RecordingManager) RecordInteraction(snapshotID string, response *Respo
         log.Printf("Request snapshot not found: %s", snapshotID)
         return
     }
-    
+
     // Record with guaranteed data integrity
     rm.recorder.RecordInteraction(request, response)
 }
@@ -217,35 +221,39 @@ func (rm *RecordingManager) RecordInteraction(snapshotID string, response *Respo
 func (r *Recorder) RecordInteraction(req *RequestSnapshot, res *ResponseSnapshot) error {
     // Generate .http file with complete data
     var buf bytes.Buffer
-    
+
     // Write request
     fmt.Fprintf(&buf, "### %s %s\n", req.Method, req.URL.String())
     fmt.Fprintf(&buf, "%s %s\n", req.Method, req.URL.String())
     fmt.Fprintf(&buf, "Host: %s\n", req.Host)
-    
+
     for k, vv := range req.Headers {
         for _, v := range vv {
             fmt.Fprintf(&buf, "%s: %s\n", k, v)
         }
     }
-    
+
     buf.WriteString("\n")
     buf.Write(req.Body)
     buf.WriteString("\n\n")
-    
+
     // Write response
+{% raw %}
     buf.WriteString("> {% \n")
+{% endraw %}
     fmt.Fprintf(&buf, "    // Response: %d %s\n", res.StatusCode, http.StatusText(res.StatusCode))
     buf.WriteString("    // Headers:\n")
-    
+
     for k, vv := range res.Headers {
         for _, v := range vv {
             fmt.Fprintf(&buf, "    // %s: %s\n", k, v)
         }
     }
-    
+
+{% raw %}
     buf.WriteString("%}\n\n")
-    
+{% endraw %}
+
     if len(res.Body) > 0 {
         buf.WriteString("/*\n")
         buf.Write(res.Body)
@@ -253,7 +261,7 @@ func (r *Recorder) RecordInteraction(req *RequestSnapshot, res *ResponseSnapshot
     } else {
         buf.WriteString("// [Binary response body: 0 bytes]\n")
     }
-    
+
     // Write to file
     return r.writeToFile(buf.Bytes(), req, res)
 }
