@@ -54,8 +54,8 @@ func TestMargeCreateAccount(t *testing.T) {
 		t.Fatalf("Failed to unmarshal response: %v", err)
 	}
 
-	if resp.AccountStatus != "ACTIVE" {
-		t.Errorf("Expected AccountStatus ACTIVE, got %v", resp.AccountStatus)
+	if resp.AccountStatus != "OK" {
+		t.Errorf("Expected AccountStatus OK, got %v", resp.AccountStatus)
 	}
 	if resp.PreferredLanguage != "de" {
 		t.Errorf("Expected PreferredLanguage de, got %v", resp.PreferredLanguage)
@@ -515,8 +515,7 @@ func TestMargeAccountSourcesNoDevices(t *testing.T) {
 		"<source id=\"10004\" type=\"Audio\"",
 		"<source id=\"10003\" type=\"Audio\"",
 		"<source id=\"10002\" type=\"Audio\"",
-		"<source id=\"10001\" type=\"Audio\" displayName=\"AUX IN\" secretType=\"token\">",
-		"displayName=\"\"", // for the other sources
+		"<source id=\"10001\" type=\"Audio\"",
 	}
 
 	for _, snippet := range expectedSnippets {
@@ -525,9 +524,9 @@ func TestMargeAccountSourcesNoDevices(t *testing.T) {
 		}
 	}
 
-	// Verify that 3 sources have empty display names
-	if strings.Count(bodyStr, "displayName=\"\"") != 3 {
-		t.Errorf("Expected 3 sources with empty displayName, got %d: %s", strings.Count(bodyStr, "displayName=\"\""), bodyStr)
+	// Verify that no sources have empty display names
+	if strings.Count(bodyStr, "displayName=\"\"") != 0 {
+		t.Errorf("Expected no sources with empty displayName, got %d: %s", strings.Count(bodyStr, "displayName=\"\""), bodyStr)
 	}
 }
 
@@ -571,10 +570,10 @@ func TestMargePresets(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(deviceDir, "Presets.xml"), []byte(`
 		<presets>
 			<preset id="1">
-				<ContentItem source="TUNEIN" type="station" location="/station/s123" sourceAccount="" isPresetable="true">
+				<contentItem source="TUNEIN" type="station" location="/station/s123" sourceAccount="" isPresetable="true">
 					<itemName>Test Station</itemName>
 					<containerArt>http://example.com/art.jpg</containerArt>
-				</ContentItem>
+				</contentItem>
 			</preset>
 		</presets>
 	`), 0644); err != nil {

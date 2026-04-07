@@ -159,8 +159,8 @@ func syncLegacySourceKey(s *models.ConfiguredSource) {
 
 // PresetsXML is the XML wrapper for a list of presets.
 type PresetsXML struct {
-	XMLName xml.Name               `xml:"presets"`
-	Presets []models.ServicePreset `xml:"preset"`
+	XMLName xml.Name          `xml:"presets"`
+	Presets []presetParityXML `xml:"preset"`
 }
 
 type presetParityXML struct {
@@ -171,7 +171,6 @@ type presetParityXML struct {
 	Location        string                   `xml:"location"`
 	Name            string                   `xml:"name"`
 	Source          *models.ConfiguredSource `xml:"source,omitempty"`
-	SourceID        string                   `xml:"sourceid,omitempty"`
 	UpdatedOn       string                   `xml:"updatedOn"`
 	Username        string                   `xml:"username"`
 }
@@ -274,11 +273,6 @@ func mapPresetToParityXML(p models.ServicePreset, sources []models.ConfiguredSou
 		username = p.Name
 	}
 
-	sourceID := p.SourceID
-	if sourceID == "" && matchedSource != nil {
-		sourceID = matchedSource.ID
-	}
-
 	return &presetParityXML{
 		ButtonNumber:    p.ButtonNumber,
 		ContainerArt:    p.ContainerArt,
@@ -287,7 +281,6 @@ func mapPresetToParityXML(p models.ServicePreset, sources []models.ConfiguredSou
 		Location:        p.Location,
 		Name:            p.Name,
 		Source:          matchedSource,
-		SourceID:        sourceID,
 		UpdatedOn:       p.UpdatedOn,
 		Username:        username,
 	}
@@ -402,11 +395,20 @@ func PresetsToXML(ds *datastore.DataStore, account, deviceID string) ([]byte, er
 }
 
 func findMatchingSourceForPreset(sources []models.ConfiguredSource, p models.ServicePreset) *models.ConfiguredSource {
+	// First try exact ID match
+	if p.SourceID != "" {
+		for j := range sources {
+			if sources[j].ID == p.SourceID {
+				return &sources[j]
+			}
+		}
+	}
+
+	// Then try type and account match
 	for j := range sources {
 		s := &sources[j]
-		if (p.SourceID != "" && s.ID == p.SourceID) ||
-			(s.SourceKey.Type == p.Source && s.SourceKey.Account == p.SourceAccount) ||
-			(s.SourceKeyType == p.Source && s.SourceKeyAccount == p.SourceAccount) {
+		if (s.SourceKey.Type == p.Source && (p.SourceAccount == "" || s.SourceKey.Account == p.SourceAccount)) ||
+			(s.SourceKeyType == p.Source && (p.SourceAccount == "" || s.SourceKeyAccount == p.SourceAccount)) {
 			return s
 		}
 	}
@@ -438,25 +440,28 @@ func RecentsToXML(ds *datastore.DataStore, account, deviceID string) ([]byte, er
 
 	for i := range recents {
 		r := &recents[i]
-		if r.SourceConfig == nil && r.SourceID != "" {
-			r.SourceConfig = findMatchingSource(sources, r.SourceID)
+
+		var matchingSrc *models.ConfiguredSource
+
+		if r.SourceID != "" {
+			matchingSrc = findMatchingSource(sources, r.SourceID)
 		}
 
-		if r.SourceConfig != nil {
-			PrepareConfiguredSource(r.SourceConfig)
+		if matchingSrc != nil {
+			PrepareConfiguredSource(matchingSrc)
 		} else if r.Source != "" {
 			// Try to find by Source and SourceAccount if SourceID didn't match
 			for j := range sources {
 				if sources[j].SourceKeyType == r.Source && sources[j].SourceKeyAccount == r.SourceAccount {
-					r.SourceConfig = &sources[j]
-					PrepareConfiguredSource(r.SourceConfig)
+					matchingSrc = &sources[j]
+					PrepareConfiguredSource(matchingSrc)
 
 					break
 				}
 			}
 		}
 
-		rxml.Recents[i] = recentToXML(r)
+		rxml.Recents[i] = recentToXML(r, matchingSrc)
 	}
 
 	data, err := xml.MarshalIndent(rxml, "", "  ")
@@ -495,7 +500,7 @@ type contentItem struct {
 	ContainerArt  string `xml:"containerArt,omitempty"`
 }
 
-func recentToXML(r *models.ServiceRecent) recent {
+func recentToXML(r *models.ServiceRecent, matchingSrc *models.ConfiguredSource) recent {
 	utcTime := int64(0)
 
 	if r.UtcTime != "" {
@@ -539,8 +544,8 @@ func recentToXML(r *models.ServiceRecent) recent {
 		},
 	}
 
-	if r.SourceConfig != nil {
-		res.Source = prepareRecentItemParitySource(r.SourceConfig)
+	if matchingSrc != nil {
+		res.Source = prepareRecentItemParitySource(matchingSrc)
 	}
 
 	return res
@@ -647,6 +652,7 @@ func CreateAccountDevice(ds *datastore.DataStore, account, deviceID string) (mod
 				Category:        comp.Category,
 				SoftwareVersion: comp.SoftwareVersion,
 				SerialNumber:    comp.SerialNumber,
+				Label:           comp.Label,
 			})
 		}
 	}
@@ -703,7 +709,9 @@ func mapToFullResponseCredential(s models.ConfiguredSource, fullSource *models.F
 	if s.Credential.Value != "" {
 		fullSource.Credential.Value = s.Credential.Value
 		fullSource.Credential.Type = s.Credential.Type
-	} else if s.Secret != "" {
+	}
+
+	if fullSource.Credential.Value == "" && s.Secret != "" {
 		fullSource.Credential.Value = s.Secret
 		fullSource.Credential.Type = s.SecretType
 	}
@@ -751,7 +759,6 @@ func mapToFullResponseSource(s models.ConfiguredSource) models.FullResponseSourc
 		SourceSettings:   "",
 		UpdatedOn:        s.UpdatedOn,
 		Username:         s.Username,
-		SecretType:       s.SecretType,
 	}
 
 	mapToFullResponseCredential(s, &fullSource)
@@ -760,7 +767,7 @@ func mapToFullResponseSource(s models.ConfiguredSource) models.FullResponseSourc
 		fullSource.SourceName = ""
 	}
 
-	if fullSource.Username == "" {
+	if fullSource.Username == "" && s.SourceKeyType != "TUNEIN" && s.SourceKeyType != "INTERNET_RADIO" && s.SourceKeyType != "LOCAL_INTERNET_RADIO" {
 		fullSource.Username = s.SourceKeyAccount
 	}
 
@@ -782,16 +789,30 @@ func mapPresetsToFullResponse(presets []models.ServicePreset, sources []models.C
 		}
 
 		var matchedSource *models.ConfiguredSource
+		// 1. Try exact ID match first
+		if p.SourceID != "" {
+			for j := range sources {
+				if sources[j].ID == p.SourceID {
+					copySource := sources[j]
+					PrepareConfiguredSource(&copySource)
+					matchedSource = &copySource
 
-		for j := range sources {
-			s := sources[j]
-			if s.ID == p.SourceID || s.SourceKeyType == p.Source {
-				// Use a new variable to avoid pointer-to-iterator-variable bug
-				copySource := s
-				PrepareConfiguredSource(&copySource)
-				matchedSource = &copySource
+					break
+				}
+			}
+		}
 
-				break
+		// 2. Fallback to type/account match if ID didn't match or was empty
+		if matchedSource == nil {
+			for j := range sources {
+				s := sources[j]
+				if s.SourceKeyType == p.Source && (p.SourceAccount == "" || s.SourceKeyAccount == p.SourceAccount) {
+					copySource := s
+					PrepareConfiguredSource(&copySource)
+					matchedSource = &copySource
+
+					break
+				}
 			}
 		}
 
@@ -805,6 +826,14 @@ func mapPresetsToFullResponse(presets []models.ServicePreset, sources []models.C
 			UpdatedOn:       p.UpdatedOn,
 			Username:        p.Username,
 		}
+		if fullPreset.Username == "" {
+			fullPreset.Username = p.Name
+		}
+
+		if fullPreset.ContentItemType == "" && p.Type != "" {
+			fullPreset.ContentItemType = p.Type
+		}
+
 		if matchedSource != nil {
 			fullPreset.Source = mapToFullResponseSource(*matchedSource)
 		}
@@ -829,16 +858,30 @@ func mapRecentsToFullResponse(recents []models.ServiceRecent, sources []models.C
 		}
 
 		var matchedSource *models.ConfiguredSource
+		// 1. Try exact ID match first
+		if r.SourceID != "" {
+			for j := range sources {
+				if sources[j].ID == r.SourceID {
+					copySource := sources[j]
+					PrepareConfiguredSource(&copySource)
+					matchedSource = &copySource
 
-		for j := range sources {
-			s := sources[j]
-			if s.ID == r.SourceID || s.SourceKeyType == r.Source {
-				// Use a new variable to avoid pointer-to-iterator-variable bug
-				copySource := s
-				PrepareConfiguredSource(&copySource)
-				matchedSource = &copySource
+					break
+				}
+			}
+		}
 
-				break
+		// 2. Fallback to type/account match if ID didn't match or was empty
+		if matchedSource == nil {
+			for j := range sources {
+				s := sources[j]
+				if s.SourceKeyType == r.Source && (r.SourceAccount == "" || s.SourceKeyAccount == r.SourceAccount) {
+					copySource := s
+					PrepareConfiguredSource(&copySource)
+					matchedSource = &copySource
+
+					break
+				}
 			}
 		}
 
@@ -851,10 +894,27 @@ func mapRecentsToFullResponse(recents []models.ServiceRecent, sources []models.C
 			Name:            r.Name,
 			SourceID:        r.SourceID,
 			UpdatedOn:       r.UpdatedOn,
-			Username:        r.Name,
+			Username:        r.Username,
 		}
+		if fullRecent.LastPlayedAt == "" && r.UtcTime != "" {
+			if ut, err := strconv.ParseInt(r.UtcTime, 10, 64); err == nil {
+				fullRecent.LastPlayedAt = time.Unix(ut, 0).UTC().Format("2006-01-02T15:04:05.000+00:00")
+			}
+		}
+
+		if fullRecent.Username == "" {
+			fullRecent.Username = r.Name
+		}
+
+		if fullRecent.ContentItemType == "" && r.Type != "" {
+			fullRecent.ContentItemType = r.Type
+		}
+
 		if matchedSource != nil {
 			fullRecent.Source = mapToFullResponseSource(*matchedSource)
+			if fullRecent.SourceID == "" {
+				fullRecent.SourceID = fullRecent.Source.ID
+			}
 		}
 
 		fullRecents = append(fullRecents, fullRecent)
@@ -1041,7 +1101,7 @@ func AccountFullToXML(ds *datastore.DataStore, account string) ([]byte, error) {
 
 	resp := models.AccountFullResponse{
 		ID:                account,
-		AccountStatus:     "ACTIVE",
+		AccountStatus:     "OK",
 		Mode:              "global",
 		PreferredLanguage: "en",
 	}
@@ -1189,12 +1249,12 @@ func UpdatePreset(ds *datastore.DataStore, account, device string, presetNumber 
 			SourceName: newPresetElem.Name,
 		},
 	})
-	presetObj.SourceConfig = matchingSrc
+	presetObj.SourceID = matchingSrc.ID
 	presetObj.Username = newPresetElem.Name
 
 	// Parity: return the preset wrapped in <presets>
 	px := PresetsXML{
-		Presets: []models.ServicePreset{presetObj},
+		Presets: []presetParityXML{*mapPresetToParityXML(presetObj, sources)},
 	}
 
 	data, err := xml.Marshal(px)

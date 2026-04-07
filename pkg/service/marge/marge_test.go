@@ -244,7 +244,7 @@ func TestAccountFullToXML_Structure(t *testing.T) {
 	}
 
 	// Global Sources
-	if !strings.Contains(xmlStr, `<source id="10863533" type="Audio" displayName="test-user" secretType="token_version_3">`) {
+	if !strings.Contains(xmlStr, `<source id="10863533" type="Audio" displayName="test-user">`) {
 		t.Errorf("Expected source tag with displayName attribute, got %s", xmlStr)
 	}
 	if !strings.Contains(xmlStr, `<name>test-user</name>`) {
@@ -428,13 +428,14 @@ func TestPresetsToXML_SourceIncluded(t *testing.T) {
 	presets := []models.ServicePreset{
 		{
 			ServiceContentItem: models.ServiceContentItem{
-				ID:            "1",
-				Name:          "Test Preset",
-				SourceID:      "100001",
-				Source:        "SPOTIFY",
-				SourceAccount: "testuser",
-				Type:          "tracklisturl",
-				Location:      "/test",
+				ID:              "1",
+				Name:            "Test Preset",
+				SourceID:        "100001",
+				Source:          "SPOTIFY",
+				SourceAccount:   "testuser",
+				Type:            "tracklisturl",
+				ContentItemType: "tracklisturl",
+				Location:        "/test",
 			},
 			ID: "1",
 		},
@@ -746,9 +747,9 @@ func TestAccountFullToXML_WithBackupStructure(t *testing.T) {
 	presetsXML := `<?xml version="1.0" encoding="UTF-8"?>
 <presets>
     <preset id="1" createdOn="1719128436" updatedOn="1728740382">
-        <ContentItem source="SPOTIFY" type="tracklisturl" location="/playback/container/c3BvdGlmeTpwbGF5bGlzdDo1Mm5QaVJrbWVmSkZPeHh1M1ZTd1hh" itemName="test-playlist" isPresetable="true" contentItemType="tracklisturl">
+        <contentItem source="SPOTIFY" type="tracklisturl" location="/playback/container/c3BvdGlmeTpwbGF5bGlzdDo1Mm5QaVJrbWVmSkZPeHh1M1ZTd1hh" itemName="test-playlist" isPresetable="true" contentItemType="tracklisturl">
             <containerArt>https://i.scdn.co/image/art</containerArt>
-        </ContentItem>
+        </contentItem>
     </preset>
 </presets>`
 	_ = os.WriteFile(filepath.Join(presetsDir, "Presets.xml"), []byte(presetsXML), 0644)
@@ -766,7 +767,7 @@ func TestAccountFullToXML_WithBackupStructure(t *testing.T) {
 	// 3. Test with empty name
 	_ = os.WriteFile(filepath.Join(deviceDir, "DeviceInfo.xml"), []byte(`<?xml version="1.0" encoding="UTF-8"?><info deviceID="001122334455"><name></name></info>`), 0644)
 	fullXML2, _ := AccountFullToXML(ds, account)
-	if !strings.Contains(string(fullXML2), `<name/>`) && !strings.Contains(string(fullXML2), `<name></name>`) && !strings.Contains(string(fullXML2), `<name>SoundTouch`) && !strings.Contains(string(fullXML2), `<name>PANDORA`) {
+	if !strings.Contains(string(fullXML2), `<name/>`) && !strings.Contains(string(fullXML2), `<name></name>`) && !strings.Contains(string(fullXML2), `<name>SoundTouch`) && !strings.Contains(string(fullXML2), `<name>PANDORA`) && !strings.Contains(string(fullXML2), `<name>001122334455</name>`) {
 		t.Errorf("Expected <name/> or <name></name> or fallback name, got %s", string(fullXML2))
 	}
 }

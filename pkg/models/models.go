@@ -142,34 +142,35 @@ type ServiceContentItem struct {
 	ContentItemType string `json:"content_item_type,omitempty" xml:"contentItemType,omitempty"`
 	Location        string `json:"location,omitempty" xml:"location,attr,omitempty"`
 	SourceAccount   string `json:"source_account,omitempty" xml:"sourceAccount,attr,omitempty"`
-	SourceID        string `json:"source_id,omitempty" xml:"sourceid,omitempty"`
+	SourceID        string `json:"source_id,omitempty" xml:"sourceid"`
 	IsPresetable    string `json:"is_presetable,omitempty" xml:"isPresetable,attr,omitempty"`
+	Username        string `json:"username,omitempty" xml:"username,omitempty"`
+	ContainerArt    string `json:"container_art,omitempty" xml:"containerArt,omitempty"`
 }
 
 // ServicePreset represents a user-defined preset for quick access to media content.
 type ServicePreset struct {
 	ServiceContentItem
-	ID           string            `json:"id,omitempty" xml:"id,attr,omitempty"`
-	ContainerArt string            `json:"container_art" xml:"containerArt"`
-	CreatedOn    string            `json:"created_on" xml:"createdOn"`
-	UpdatedOn    string            `json:"updated_on" xml:"updatedOn"`
-	ButtonNumber string            `json:"button_number,omitempty" xml:"buttonNumber,attr,omitempty"`
-	Username     string            `json:"-" xml:"username,omitempty"`
-	SourceConfig *ConfiguredSource `json:"-" xml:"source,omitempty"`
+	ID           string `json:"id,omitempty" xml:"id,attr,omitempty"`
+	ContainerArt string `json:"container_art" xml:"containerArt"`
+	CreatedOn    string `json:"created_on" xml:"createdOn"`
+	UpdatedOn    string `json:"updated_on" xml:"updatedOn"`
+	ButtonNumber string `json:"button_number,omitempty" xml:"buttonNumber,attr,omitempty"`
+	Username     string `json:"-" xml:"username,omitempty"`
 }
 
 // MarshalXML implements the xml.Marshaler interface for ServicePreset to match upstream parity.
 func (p ServicePreset) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	type Alias struct {
-		ButtonNumber    string            `xml:"buttonNumber,attr,omitempty"`
-		ContainerArt    string            `xml:"containerArt"`
-		ContentItemType string            `xml:"contentItemType"`
-		CreatedOn       string            `xml:"createdOn"`
-		Location        string            `xml:"location"`
-		Name            string            `xml:"name"`
-		Source          *ConfiguredSource `xml:"source,omitempty"`
-		UpdatedOn       string            `xml:"updatedOn"`
-		Username        string            `xml:"username"`
+		ButtonNumber    string `xml:"buttonNumber,attr,omitempty"`
+		ContainerArt    string `xml:"containerArt"`
+		ContentItemType string `xml:"contentItemType"`
+		CreatedOn       string `xml:"createdOn"`
+		Location        string `xml:"location"`
+		Name            string `xml:"name"`
+		SourceID        string `xml:"sourceid,omitempty"`
+		UpdatedOn       string `xml:"updatedOn"`
+		Username        string `xml:"username"`
 	}
 
 	createdOn := p.CreatedOn
@@ -193,7 +194,7 @@ func (p ServicePreset) MarshalXML(e *xml.Encoder, start xml.StartElement) error 
 		CreatedOn:       createdOn,
 		Location:        p.Location,
 		Name:            p.Name,
-		Source:          p.SourceConfig,
+		SourceID:        p.SourceID,
 		UpdatedOn:       updatedOn,
 		Username:        p.Username,
 	}
@@ -213,13 +214,11 @@ func (p ServicePreset) MarshalXML(e *xml.Encoder, start xml.StartElement) error 
 type ServiceRecent struct {
 	XMLName xml.Name `json:"-" xml:"recent"`
 	ServiceContentItem
-	DeviceID     string            `json:"device_id" xml:"deviceID,attr,omitempty"`
-	UtcTime      string            `json:"utc_time" xml:"utcTime,attr,omitempty"`
-	CreatedOn    string            `json:"created_on,omitempty" xml:"createdOn,omitempty"`
-	UpdatedOn    string            `json:"updated_on,omitempty" xml:"updatedOn,omitempty"`
-	ContainerArt string            `json:"container_art,omitempty" xml:"containerArt,omitempty"`
-	SourceConfig *ConfiguredSource `json:"-" xml:"source,omitempty"`
-	LastPlayedAt string            `json:"last_played_at,omitempty" xml:"lastplayedat,omitempty"`
+	DeviceID     string `json:"device_id" xml:"deviceID,attr,omitempty"`
+	UtcTime      string `json:"utc_time" xml:"utcTime,attr,omitempty"`
+	CreatedOn    string `json:"created_on,omitempty" xml:"createdOn,omitempty"`
+	UpdatedOn    string `json:"updated_on,omitempty" xml:"updatedOn,omitempty"`
+	LastPlayedAt string `json:"last_played_at,omitempty" xml:"lastplayedat,omitempty"`
 }
 
 // RecentItemParity represents recently played media content for web API responses (flat format).
@@ -282,13 +281,17 @@ func (r *ServiceRecent) UnmarshalXML(d *xml.Decoder, start xml.StartElement) err
 		ContentItem  *NestedContentItem `xml:"contentItem,omitempty"`
 		// Flat format might use these tags
 		FlatLocation        string `xml:"location"`
-		FlatContentItemType string `xml:"contentItemType"`
-		FlatName            string `xml:"name"`
-		FlatSourceID        string `xml:"sourceid"`
-		FlatSource          string `xml:"source_key"`
 		FlatTypeTag         string `xml:"type"`
+		AttrType            string `xml:"type,attr"`
 		FlatSourceAccount   string `xml:"sourceAccount"`
 		FlatIsPresetable    string `xml:"isPresetable"`
+		FlatContentItemType string `xml:"contentItemType"`
+		AttrContentItemType string `xml:"contentItemType,attr"`
+		FlatName            string `xml:"name"`
+		FlatSourceID        string `xml:"sourceid"`
+		FlatSourceIDAttr    string `xml:"sourceid,attr"`
+		FlatSource          string `xml:"source_key"`
+		AttrSource          string `xml:"source,attr"`
 	}
 
 	var a Alias
@@ -303,7 +306,6 @@ func (r *ServiceRecent) UnmarshalXML(d *xml.Decoder, start xml.StartElement) err
 	r.CreatedOn = a.CreatedOn
 	r.UpdatedOn = a.UpdatedOn
 	r.ContainerArt = a.ContainerArt
-	r.SourceConfig = a.SourceConfig
 	r.LastPlayedAt = a.LastPlayedAt
 	r.SourceID = a.FlatSourceID
 
@@ -311,6 +313,7 @@ func (r *ServiceRecent) UnmarshalXML(d *xml.Decoder, start xml.StartElement) err
 	if a.ContentItem != nil {
 		r.Source = a.ContentItem.Source
 		r.Type = a.ContentItem.Type
+		r.ContentItemType = a.ContentItem.Type // Set ContentItemType from nested type
 		r.Location = a.ContentItem.Location
 		r.SourceAccount = a.ContentItem.SourceAccount
 		r.IsPresetable = a.ContentItem.IsPresetable
@@ -325,24 +328,38 @@ func (r *ServiceRecent) UnmarshalXML(d *xml.Decoder, start xml.StartElement) err
 			r.Location = a.FlatLocation
 		}
 
-		if a.FlatContentItemType != "" {
+		switch {
+		case a.FlatContentItemType != "":
 			r.ContentItemType = a.FlatContentItemType
+		case a.FlatTypeTag != "":
+			r.ContentItemType = a.FlatTypeTag
+		case a.AttrType != "":
+			r.ContentItemType = a.AttrType
+		}
+
+		switch {
+		case a.FlatTypeTag != "":
+			r.Type = a.FlatTypeTag
+		case a.AttrType != "":
+			r.Type = a.AttrType
+		}
+
+		switch {
+		case a.FlatSourceID != "":
+			r.SourceID = a.FlatSourceID
+		case a.FlatSourceIDAttr != "":
+			r.SourceID = a.FlatSourceIDAttr
+		}
+
+		switch {
+		case a.FlatSource != "":
+			r.Source = a.FlatSource
+		case a.AttrSource != "":
+			r.Source = a.AttrSource
 		}
 
 		if a.FlatName != "" {
 			r.Name = a.FlatName
-		}
-
-		if a.FlatSourceID != "" {
-			r.SourceID = a.FlatSourceID
-		}
-
-		if a.FlatSource != "" {
-			r.Source = a.FlatSource
-		}
-
-		if a.FlatTypeTag != "" {
-			r.Type = a.FlatTypeTag
 		}
 
 		if a.FlatSourceAccount != "" {
@@ -380,7 +397,6 @@ func (r ServiceRecent) MarshalXML(e *xml.Encoder, start xml.StartElement) error 
 		LastPlayedAt string             `xml:"lastplayedat"`
 		SourceID     string             `xml:"sourceid"`
 		Username     string             `xml:"username"`
-		SourceConfig *ConfiguredSource  `xml:"source,omitempty"`
 	}
 
 	a := Alias{
@@ -392,7 +408,6 @@ func (r ServiceRecent) MarshalXML(e *xml.Encoder, start xml.StartElement) error 
 		LastPlayedAt: r.LastPlayedAt,
 		SourceID:     r.SourceID,
 		Username:     r.Name, // Using Name as Username for parity
-		SourceConfig: r.SourceConfig,
 		ContentItem: &NestedContentItem{
 			Source:        r.Source,
 			Type:          r.Type,
@@ -414,8 +429,8 @@ type ConfiguredSource struct {
 	XMLName     xml.Name `json:"-" xml:"source"`
 	DisplayName string   `json:"display_name" xml:"displayName,attr,omitempty"`
 	ID          string   `json:"id" xml:"id,attr,omitempty"`
-	Secret      string   `json:"secret" xml:"-"`
-	SecretType  string   `json:"secret_type" xml:"-"`
+	Secret      string   `json:"secret" xml:"secret,attr,omitempty"`
+	SecretType  string   `json:"secret_type" xml:"secretType,attr,omitempty"`
 	Credential  struct {
 		Type  string `xml:"type,attr"`
 		Value string `xml:",chardata"`
@@ -559,7 +574,7 @@ type ServiceComponent struct {
 	Category        string `json:"category,omitempty" xml:"category,attr,omitempty"`
 	SoftwareVersion string `json:"firmware_version" xml:"firmware-version"`
 	SerialNumber    string `json:"serial_number" xml:"serialnumber"`
-	Label           string `json:"label,omitempty" xml:"componentlabel,omitempty"`
+	Label           string `json:"label,omitempty" xml:"componentlabel"`
 }
 
 // ServiceAccountInfo represents account-level metadata.
@@ -695,7 +710,7 @@ type EmailAddressResponse struct {
 type FullResponseSource struct {
 	ID          string `json:"id" xml:"id,attr"`
 	Type        string `json:"type" xml:"type,attr"`
-	DisplayName string `json:"display_name" xml:"displayName,attr"`
+	DisplayName string `json:"display_name" xml:"displayName,attr,omitempty"`
 	CreatedOn   string `json:"created_on" xml:"createdOn"`
 	Credential  struct {
 		Type  string `json:"type" xml:"type,attr"`
@@ -709,7 +724,6 @@ type FullResponseSource struct {
 	Username         string `json:"username" xml:"username"`
 	Account          string `json:"account,omitempty" xml:"account,attr,omitempty"`
 	SourceLabel      string `json:"source_label" xml:"-"`
-	SecretType       string `json:"secret_type,omitempty" xml:"secretType,attr,omitempty"`
 }
 
 // FullResponsePreset represents a preset specifically for the /full response.
@@ -780,7 +794,7 @@ type AccountDevice struct {
 	DeviceID           string               `json:"device_id" xml:"deviceid,attr"`
 	AttachedProduct    *AttachedProduct     `json:"attached_product" xml:"attachedProduct"`
 	CreatedOn          string               `json:"created_on" xml:"createdOn"`
-	FirmwareVersion    string               `json:"firmware_version" xml:"firmwareVersion,omitempty"`
+	FirmwareVersion    string               `json:"firmware_version" xml:"firmwareVersion"`
 	IPAddress          string               `json:"ip_address" xml:"ipaddress"`
 	Name               string               `json:"name" xml:"name"`
 	Presets            []FullResponsePreset `json:"presets" xml:"presets>preset,omitempty"`
