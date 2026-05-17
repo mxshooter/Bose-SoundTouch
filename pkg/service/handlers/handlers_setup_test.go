@@ -18,7 +18,7 @@ import (
 )
 
 func TestProxySettingsAPI(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "proxy-settings-test")
+	tempDir, err := os.MkdirTemp("", "logging-settings-test")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
@@ -37,7 +37,7 @@ func TestProxySettingsAPI(t *testing.T) {
 	server.logBodies = false
 
 	// 1. Test GET
-	res, err := http.Get(ts.URL + "/setup/proxy-settings")
+	res, err := http.Get(ts.URL + "/setup/logging-settings")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,7 +68,7 @@ func TestProxySettingsAPI(t *testing.T) {
 		t.Fatalf("Failed to marshal update data: %v", err)
 	}
 
-	res, err = http.Post(ts.URL+"/setup/proxy-settings", "application/json", bytes.NewBuffer(body))
+	res, err = http.Post(ts.URL+"/setup/logging-settings", "application/json", bytes.NewBuffer(body))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func TestProxySettingsAPI(t *testing.T) {
 		t.Errorf("POST: Server state did not update: redact=%v, logBody=%v", server.redactLogs, server.logBodies)
 	}
 
-	res, err = http.Get(ts.URL + "/setup/proxy-settings")
+	res, err = http.Get(ts.URL + "/setup/logging-settings")
 	if err != nil {
 		t.Fatal(err)
 	}

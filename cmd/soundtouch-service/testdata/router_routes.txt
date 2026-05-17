@@ -63,7 +63,7 @@ GET      /setup/interaction-content                                   handlers.(
 GET      /setup/interaction-stats                                     handlers.(*Server).HandleGetInteractionStats-fm
 GET      /setup/interactions                                          handlers.(*Server).HandleListInteractions-fm
 GET      /setup/interactions/sessions/{session}/download              handlers.(*Server).HandleDownloadSession-fm
-GET      /setup/proxy-settings                                        handlers.(*Server).HandleGetProxySettings-fm
+GET      /setup/logging-settings                                      handlers.(*Server).HandleGetLoggingSettings-fm
 GET      /setup/settings                                              handlers.(*Server).HandleGetSettings-fm
 GET      /setup/summary/{deviceId}                                    handlers.(*Server).HandleGetMigrationSummary-fm
 GET      /setup/version                                               handlers.(*Server).HandleGetVersionInfo-fm
@@ -127,10 +127,10 @@ POST     /setup/backup/{deviceId}                                     handlers.(
 POST     /setup/devices                                               handlers.(*Server).HandleAddManualDevice-fm
 POST     /setup/discover                                              handlers.(*Server).HandleTriggerDiscovery-fm
 POST     /setup/ensure-remote-services/{deviceId}                     handlers.(*Server).HandleEnsureRemoteServices-fm
+POST     /setup/logging-settings                                      handlers.(*Server).HandleUpdateLoggingSettings-fm
 POST     /setup/migrate/{deviceId}                                    handlers.(*Server).HandleMigrateDevice-fm
 POST     /setup/pair-account/{deviceId}                               handlers.(*Server).HandlePairAccount-fm
 POST     /setup/peer-probe/{deviceId}                                 handlers.(*Server).HandlePeerProbe-fm
-POST     /setup/proxy-settings                                        handlers.(*Server).HandleUpdateProxySettings-fm
 POST     /setup/reboot/{deviceId}                                     handlers.(*Server).HandleRebootDevice-fm
 POST     /setup/remove-remote-services/{deviceId}                     handlers.(*Server).HandleRemoveRemoteServices-fm
 POST     /setup/revert/{deviceId}                                     handlers.(*Server).HandleRevertMigration-fm

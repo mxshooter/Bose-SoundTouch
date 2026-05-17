@@ -836,11 +836,11 @@ func (s *Server) HandleBackupConfig(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// HandleGetProxySettings returns the current proxy settings.
-func (s *Server) HandleGetProxySettings(w http.ResponseWriter, _ *http.Request) {
+// HandleGetLoggingSettings returns the current proxy settings.
+func (s *Server) HandleGetLoggingSettings(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	redact, logBody, record := s.GetProxySettings()
+	redact, logBody, record := s.GetLoggingSettings()
 
 	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"redact":   redact,
@@ -867,8 +867,8 @@ func (s *Server) HandleGetCACert(w http.ResponseWriter, _ *http.Request) {
 	_, _ = w.Write(content)
 }
 
-// HandleUpdateProxySettings updates the proxy settings.
-func (s *Server) HandleUpdateProxySettings(w http.ResponseWriter, r *http.Request) {
+// HandleUpdateLoggingSettings updates the proxy settings.
+func (s *Server) HandleUpdateLoggingSettings(w http.ResponseWriter, r *http.Request) {
 	var settings struct {
 		Redact  bool `json:"redact"`
 		LogBody bool `json:"log_body"`

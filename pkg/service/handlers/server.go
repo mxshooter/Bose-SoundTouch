@@ -563,8 +563,8 @@ func (s *Server) IsSpotifyConfigured() bool {
 	return s.spotifyService != nil
 }
 
-// GetProxySettings returns the current proxy settings.
-func (s *Server) GetProxySettings() (bool, bool, bool) {
+// GetLoggingSettings returns the current logging settings (redact / log-body / record).
+func (s *Server) GetLoggingSettings() (bool, bool, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 

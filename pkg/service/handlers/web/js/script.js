@@ -319,33 +319,33 @@ async function fetchSettings() {
             }
         }
 
-        fetchProxySettings();
+        fetchLoggingSettings();
         fetchSpotifyStatus();
     } catch (error) {
         console.error("Failed to fetch settings", error);
     }
 }
 
-async function fetchProxySettings() {
+async function fetchLoggingSettings() {
     try {
-        const response = await fetch("/setup/proxy-settings");
+        const response = await fetch("/setup/logging-settings");
         const settings = await response.json();
-        document.getElementById("proxy-redact").checked = settings.redact;
-        document.getElementById("proxy-log-body").checked = settings.log_body;
-        document.getElementById("proxy-record").checked = settings.record;
+        document.getElementById("logging-redact").checked = settings.redact;
+        document.getElementById("logging-log-body").checked = settings.log_body;
+        document.getElementById("logging-record").checked = settings.record;
     } catch (error) {
         console.error("Failed to fetch proxy settings", error);
     }
 }
 
-async function updateProxySettings() {
+async function updateLoggingSettings() {
     const settings = {
-        redact: document.getElementById("proxy-redact").checked,
-        log_body: document.getElementById("proxy-log-body").checked,
-        record: document.getElementById("proxy-record").checked,
+        redact: document.getElementById("logging-redact").checked,
+        log_body: document.getElementById("logging-log-body").checked,
+        record: document.getElementById("logging-record").checked,
     };
     try {
-        await fetch("/setup/proxy-settings", {
+        await fetch("/setup/logging-settings", {
             method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(settings),
         });
     } catch (error) {
