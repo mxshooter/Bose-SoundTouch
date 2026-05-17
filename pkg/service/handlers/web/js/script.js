@@ -275,18 +275,6 @@ async function fetchSettings() {
             dnsCurrentUpstream.innerText = "";
         }
 
-        if (settings.mirror_enabled !== undefined) {
-            document.getElementById("mirror-enabled").checked = settings.mirror_enabled;
-        }
-        if (settings.preferred_source !== undefined) {
-            document.getElementById("preferred-source-upstream").checked = settings.preferred_source === "upstream";
-        }
-        if (settings.mirror_endpoints) {
-            document.getElementById("mirror-endpoints").value = settings.mirror_endpoints.join("\n");
-        }
-        if (settings.skip_mirror_endpoints) {
-            document.getElementById("skip-mirror-endpoints").value = settings.skip_mirror_endpoints.join("\n");
-        }
         if (settings.internal_paths) {
             document.getElementById("internal-paths").value = settings.internal_paths.join("\n");
         }
@@ -373,18 +361,6 @@ async function updateSettings() {
         dns_enabled: document.getElementById("dns-enabled").checked,
         dns_upstream: document.getElementById("dns-upstream").value,
         dns_bind_addr: document.getElementById("dns-bind").value,
-        mirror_enabled: document.getElementById("mirror-enabled").checked,
-        preferred_source: document.getElementById("preferred-source-upstream").checked ? "upstream" : "local",
-        mirror_endpoints: document
-            .getElementById("mirror-endpoints")
-            .value.split("\n")
-            .map((s) => s.trim())
-            .filter((s) => s !== ""),
-        skip_mirror_endpoints: document
-            .getElementById("skip-mirror-endpoints")
-            .value.split("\n")
-            .map((s) => s.trim())
-            .filter((s) => s !== ""),
         internal_paths: document
             .getElementById("internal-paths")
             .value.split("\n")
@@ -525,10 +501,6 @@ function openTab(evt, tabId) {
         fetchInteractionStats();
         fetchInteractions();
         fetchDNSDiscoveries();
-    }
-
-    if (tabId === "tab-parity") {
-        fetchParityMismatches();
     }
 
     if (tabId === "tab-account") {
@@ -1525,122 +1497,6 @@ async function fetchDeviceEvents(deviceId) {
         list.innerHTML = `<tr><td colspan="3" style="padding: 20px; text-align: center; color: #f44336;">Error loading events: ${error.message}</td></tr>`;
     }
 }
-
-async function fetchParityMismatches() {
-    const list = document.getElementById("parity-mismatches-list");
-    list.innerHTML = '<tr><td colspan="5" style="padding: 20px; text-align: center; color: #666;">Loading mismatches...</td></tr>';
-
-    try {
-        const response = await fetch("/setup/parity-mismatches");
-        const mismatches = await response.json();
-
-        list.innerHTML = "";
-        if (!mismatches || mismatches.length === 0) {
-            list.innerHTML = '<tr><td colspan="5" style="padding: 20px; text-align: center; color: #666;">No parity mismatches detected yet.</td></tr>';
-            return;
-        }
-
-        mismatches.forEach((m) => {
-            const tr = document.createElement("tr");
-            tr.style.borderBottom = "1px solid #eee";
-
-            const time = m.timestamp || "";
-            const method = m.method || "";
-            const path = m.path || "";
-            const reasons = (m.reasons || []).join(", ");
-
-            tr.innerHTML = `
-                <td style="padding: 8px; font-size: 0.8em;">${time}</td>
-                <td style="padding: 8px; font-family: monospace;">${method}</td>
-                <td style="padding: 8px; font-size: 0.9em;">${path}</td>
-                <td style="padding: 8px; font-size: 0.85em; color: #c62828;">${reasons}</td>
-                <td style="padding: 8px;"><button onclick='viewParityMismatch(${JSON.stringify(m)})'>View Diff</button></td>
-            `;
-            list.appendChild(tr);
-        });
-    } catch (error) {
-        list.innerHTML = `<tr><td colspan="5" style="padding: 20px; text-align: center; color: #f44336;">Error loading mismatches: ${error.message}</td></tr>`;
-    }
-}
-
-async function clearParityMismatches() {
-    if (!confirm("Are you sure you want to clear all parity mismatch records?")) return;
-    try {
-        await fetch("/setup/parity-mismatches", {method: "DELETE"});
-        fetchParityMismatches();
-        document.getElementById("parity-diff-view").style.display = "none";
-    } catch (error) {
-        alert("Failed to clear mismatches: " + error.message);
-    }
-}
-
-function viewParityMismatch(m, forceRichDiff = false) {
-    document.getElementById("diff-path-display").innerText = m.method + " " + m.path;
-    const reasonsList = document.getElementById("diff-reasons-list");
-    reasonsList.innerHTML = "";
-    (m.reasons || []).forEach((r) => {
-        const li = document.createElement("li");
-        li.innerText = r;
-        reasonsList.appendChild(li);
-    });
-
-    document.getElementById("diff-local-meta").innerText = `Status: ${m.local.status}`;
-    document.getElementById("diff-upstream-meta").innerText = `Status: ${m.upstream.status}`;
-
-    const localCT = (m.local.headers && m.local.headers["Content-Type"]) ? m.local.headers["Content-Type"][0] : "";
-    const upstreamCT = (m.upstream.headers && m.upstream.headers["Content-Type"]) ? m.upstream.headers["Content-Type"][0] : "";
-
-    const localBody = formatBody(m.local.body, localCT);
-    const upstreamBody = formatBody(m.upstream.body, upstreamCT);
-
-    const diffSizeThreshold = 50000; // 50KB
-    const isLarge = localBody.length > diffSizeThreshold || upstreamBody.length > diffSizeThreshold;
-    const warningEl = document.getElementById("diff-size-warning");
-
-    if (isLarge && !forceRichDiff) {
-        warningEl.style.display = "block";
-        const forceBtn = document.getElementById("force-rich-diff-btn");
-        forceBtn.onclick = () => viewParityMismatch(m, true);
-
-        document.getElementById("diff-local-body").innerText = localBody;
-        document.getElementById("diff-upstream-body").innerText = upstreamBody;
-    } else {
-        warningEl.style.display = "none";
-        if (typeof Diff !== 'undefined') {
-            const diff = Diff.diffChars(localBody, upstreamBody);
-            const localEl = document.getElementById("diff-local-body");
-            const upstreamEl = document.getElementById("diff-upstream-body");
-
-            localEl.innerHTML = "";
-            upstreamEl.innerHTML = "";
-
-            diff.forEach((part) => {
-                const span = document.createElement('span');
-                if (part.added) {
-                    span.className = 'diff-added';
-                    span.innerText = part.value;
-                    upstreamEl.appendChild(span);
-                } else if (part.removed) {
-                    span.className = 'diff-removed';
-                    span.innerText = part.value;
-                    localEl.appendChild(span);
-                } else {
-                    localEl.appendChild(document.createTextNode(part.value));
-                    upstreamEl.appendChild(document.createTextNode(part.value));
-                }
-            });
-        } else {
-            document.getElementById("diff-local-body").innerText = localBody;
-            document.getElementById("diff-upstream-body").innerText = upstreamBody;
-        }
-    }
-
-    document.getElementById("parity-diff-view").style.display = "block";
-    document
-        .getElementById("parity-diff-view")
-        .scrollIntoView({behavior: "smooth"});
-}
-
 function formatBody(body, contentType) {
     if (!body) return "";
     contentType = (contentType || "").toLowerCase();
@@ -1698,7 +1554,6 @@ document.addEventListener("DOMContentLoaded", () => {
     fetchDevices();
     triggerDiscovery();
     fetchVersion();
-    fetchParityMismatches();
 
     const syncBtn = document.getElementById("sync-now-btn");
     if (syncBtn) syncBtn.onclick = startSync;

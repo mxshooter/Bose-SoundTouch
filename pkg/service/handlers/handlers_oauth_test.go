@@ -84,10 +84,6 @@ func TestHandleBoseSpotifyToken_FallbackToProxy(t *testing.T) {
 	ds := datastore.NewDataStore(tmpDir)
 	server := NewServer(ds, nil, "http://localhost", false, false, false)
 
-	// Mirroring must be enabled for HandleBoseProxy to work (based on previous changes)
-	// Actually I reverted that, so it should work regardless of MirrorEnabled now.
-	server.SetMirrorSettings(true, nil, nil, "")
-
 	// chi.URLParam works when using chi router
 	r := chi.NewRouter()
 	r.Post("/oauth/device/{deviceID}/music/musicprovider/{sourceID}/token/cs3", server.HandleBoseToken)
@@ -260,7 +256,6 @@ func TestHandleBoseAmazonToken_FallbackToProxy(t *testing.T) {
 	tmpDir := t.TempDir()
 	ds := datastore.NewDataStore(tmpDir)
 	server := NewServer(ds, nil, "http://localhost", false, false, false)
-	server.SetMirrorSettings(true, nil, nil, "")
 
 	r := chi.NewRouter()
 	r.Post("/oauth/device/{deviceID}/music/musicprovider/{sourceID}/token/cs1", server.HandleBoseToken)

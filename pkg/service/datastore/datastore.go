@@ -2093,10 +2093,6 @@ type Settings struct {
 	DNSEnabled          bool           `json:"dns_enabled"`
 	DNSUpstream         []string       `json:"dns_upstream,omitempty"`
 	DNSBindAddr         string         `json:"dns_bind_addr,omitempty"`
-	MirrorEnabled       bool           `json:"mirror_enabled"`
-	MirrorEndpoints     []string       `json:"mirror_endpoints,omitempty"`
-	SkipMirrorEndpoints []string       `json:"skip_mirror_endpoints,omitempty"`
-	PreferredSource     string         `json:"preferred_source,omitempty"`
 	InternalPaths       []string       `json:"internal_paths,omitempty"`
 	Shortcuts           map[string]int `json:"shortcuts,omitempty"`
 	SpotifyClientID     string         `json:"spotify_client_id,omitempty"`
@@ -2107,7 +2103,7 @@ type Settings struct {
 	AmazonRedirectURI   string         `json:"amazon_redirect_uri,omitempty"`
 
 	// AllowInsecureUpstreamTLS, when true, disables TLS certificate verification
-	// for the upstream Bose-cloud proxy and mirror traffic. The default (false)
+	// for the upstream Bose-cloud proxy traffic. The default (false)
 	// keeps verification on; opt in only when the upstream certificate chain is
 	// broken (post end-of-service) and a temporary unblock is required.
 	AllowInsecureUpstreamTLS bool `json:"allow_insecure_upstream_tls,omitempty"`

@@ -153,10 +153,6 @@ func (s *Server) HandleGetSettings(w http.ResponseWriter, _ *http.Request) {
 	dnsEnabled := s.dnsEnabled
 	dnsUpstream := s.dnsUpstream
 	dnsBindAddr := s.dnsBindAddr
-	mirrorEnabled := s.mirrorEnabled
-	mirrorEndpoints := s.mirrorEndpoints
-	skipMirrorEndpoints := s.skipMirrorEndpoints
-	preferredSource := s.preferredSource
 	internalPaths := s.internalPaths
 	redact, logBody, record := s.proxyRedact, s.proxyLogBody, s.recordEnabled
 	shortcuts := s.shortcuts
@@ -211,10 +207,6 @@ func (s *Server) HandleGetSettings(w http.ResponseWriter, _ *http.Request) {
 		"dns_actual_bind":               actualBind,
 		"dns_upstream":                  strings.Join(dnsUpstream, ","),
 		"dns_bind_addr":                 dnsBindAddr,
-		"mirror_enabled":                mirrorEnabled,
-		"mirror_endpoints":              mirrorEndpoints,
-		"skip_mirror_endpoints":         skipMirrorEndpoints,
-		"preferred_source":              preferredSource,
 		"internal_paths":                internalPaths,
 		"redact_logs":                   redact,
 		"log_bodies":                    logBody,
@@ -243,10 +235,6 @@ func (s *Server) HandleUpdateSettings(w http.ResponseWriter, r *http.Request) {
 		DNSEnabled          bool           `json:"dns_enabled"`
 		DNSUpstream         string         `json:"dns_upstream"`
 		DNSBindAddr         string         `json:"dns_bind_addr"`
-		MirrorEnabled       bool           `json:"mirror_enabled"`
-		MirrorEndpoints     []string       `json:"mirror_endpoints"`
-		SkipMirrorEndpoints []string       `json:"skip_mirror_endpoints"`
-		PreferredSource     string         `json:"preferred_source"`
 		InternalPaths       []string       `json:"internal_paths"`
 		Shortcuts           map[string]int `json:"shortcuts"`
 		SpotifyClientID     string         `json:"spotify_client_id"`
@@ -311,10 +299,6 @@ func (s *Server) HandleUpdateSettings(w http.ResponseWriter, r *http.Request) {
 	s.dnsUpstream = upstreamList
 	s.dnsBindAddr = settings.DNSBindAddr
 
-	s.mirrorEnabled = settings.MirrorEnabled
-	s.mirrorEndpoints = settings.MirrorEndpoints
-	s.skipMirrorEndpoints = settings.SkipMirrorEndpoints
-	s.preferredSource = settings.PreferredSource
 	s.internalPaths = settings.InternalPaths
 
 	if settings.Shortcuts != nil {
@@ -350,10 +334,6 @@ func (s *Server) HandleUpdateSettings(w http.ResponseWriter, r *http.Request) {
 		DNSEnabled:          s.dnsEnabled,
 		DNSUpstream:         s.dnsUpstream,
 		DNSBindAddr:         s.dnsBindAddr,
-		MirrorEnabled:       s.mirrorEnabled,
-		MirrorEndpoints:     s.mirrorEndpoints,
-		SkipMirrorEndpoints: s.skipMirrorEndpoints,
-		PreferredSource:     s.preferredSource,
 		InternalPaths:       s.internalPaths,
 		Shortcuts:           s.shortcuts,
 		SpotifyClientID:     s.spotifyClientID,

@@ -921,21 +921,6 @@ func renderMigrationSummary(deviceIP, serviceURL string, s *setup.MigrationSumma
 	fmt.Printf("  %s resolv  (/etc/resolv.conf via DHCP hook)\n", checkmark(s.ResolvMigrated))
 	fmt.Println()
 
-	if s.MirrorEnabled || len(s.MirrorEndpoints) > 0 {
-		fmt.Println("Mirroring")
-		fmt.Printf("  %s enabled\n", checkmark(s.MirrorEnabled))
-
-		if len(s.MirrorEndpoints) > 0 {
-			fmt.Printf("        endpoints: %s\n", strings.Join(s.MirrorEndpoints, ", "))
-		}
-
-		if len(s.SkipMirrorEndpoints) > 0 {
-			fmt.Printf("        skip:      %s\n", strings.Join(s.SkipMirrorEndpoints, ", "))
-		}
-
-		fmt.Println()
-	}
-
 	if len(s.Warnings) > 0 {
 		fmt.Println("Warnings")
 

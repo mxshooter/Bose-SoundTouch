@@ -9,8 +9,7 @@ import (
 )
 
 func TestHandleTuneInReport(t *testing.T) {
-	r, s := setupRouter("http://localhost:8001", nil)
-	s.SetMirrorSettings(false, nil, nil, "")
+	r, _ := setupRouter("http://localhost:8001", nil)
 
 	ts := httptest.NewServer(r)
 	defer ts.Close()

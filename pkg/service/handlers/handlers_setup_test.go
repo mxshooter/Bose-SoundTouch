@@ -126,49 +126,39 @@ func TestProxySettingsAPI(t *testing.T) {
 		t.Errorf("POST /setup/settings: Server state did not update: serverURL=%s", sURL)
 	}
 
-	// 4. Test Mirror Settings persistence
-	mirrorUpdate := map[string]interface{}{
-		"server_url":       "http://127.0.0.1:8000",
-		"mirror_enabled":   true,
-		"mirror_endpoints": []string{"/test/*"},
-		"internal_paths":   []string{"/setup/*"},
+	// 4. Test internal paths persistence
+	pathUpdate := map[string]interface{}{
+		"server_url":     "http://127.0.0.1:8000",
+		"internal_paths": []string{"/setup/*"},
 	}
 
-	mirrorBody, err := json.Marshal(mirrorUpdate)
+	pathBody, err := json.Marshal(pathUpdate)
 	if err != nil {
-		t.Fatalf("Failed to marshal mirror settings: %v", err)
+		t.Fatalf("Failed to marshal path settings: %v", err)
 	}
-	res, err = http.Post(ts.URL+"/setup/settings", "application/json", bytes.NewBuffer(mirrorBody))
+	res, err = http.Post(ts.URL+"/setup/settings", "application/json", bytes.NewBuffer(pathBody))
 	if err != nil {
 		t.Fatal(err)
 	}
 	res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
-		t.Errorf("POST /setup/settings (mirror): Expected status OK, got %v", res.Status)
+		t.Errorf("POST /setup/settings (paths): Expected status OK, got %v", res.Status)
 	}
 
 	// Verify server state
 	server.mu.RLock()
-	mEnabled := server.mirrorEnabled
-	mEndpoints := server.mirrorEndpoints
 	iPaths := server.internalPaths
 	server.mu.RUnlock()
 
-	if !mEnabled || len(mEndpoints) != 1 || mEndpoints[0] != "/test/*" {
-		t.Errorf("POST /setup/settings (mirror): Server state did not update: enabled=%v, endpoints=%v", mEnabled, mEndpoints)
-	}
 	if len(iPaths) != 1 || iPaths[0] != "/setup/*" {
-		t.Errorf("POST /setup/settings (mirror): Internal paths did not update: %v", iPaths)
+		t.Errorf("POST /setup/settings (paths): Internal paths did not update: %v", iPaths)
 	}
 
 	// Verify persistence in datastore
 	persisted, _ := ds.GetSettings()
-	if !persisted.MirrorEnabled || len(persisted.MirrorEndpoints) != 1 || persisted.MirrorEndpoints[0] != "/test/*" {
-		t.Errorf("POST /setup/settings (mirror): Datastore did not update: %+v", persisted)
-	}
 	if len(persisted.InternalPaths) != 1 || persisted.InternalPaths[0] != "/setup/*" {
-		t.Errorf("POST /setup/settings (mirror): Datastore internal paths did not update: %+v", persisted)
+		t.Errorf("POST /setup/settings (paths): Datastore internal paths did not update: %+v", persisted)
 	}
 }
 

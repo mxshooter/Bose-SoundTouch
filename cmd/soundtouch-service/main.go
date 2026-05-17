@@ -337,21 +337,6 @@ func main() {
 				Usage:   "External base URL for OAuth callbacks behind reverse proxy",
 				EnvVars: []string{"BASE_URL"},
 			},
-			&cli.BoolFlag{
-				Name:    "mirror-enabled",
-				Usage:   "Enable background mirroring to Bose Cloud",
-				EnvVars: []string{"MIRROR_ENABLED"},
-			},
-			&cli.StringSliceFlag{
-				Name:    "mirror-endpoints",
-				Usage:   "Endpoints to mirror to Bose Cloud (comma-separated or multiple flags)",
-				EnvVars: []string{"MIRROR_ENDPOINTS"},
-			},
-			&cli.StringSliceFlag{
-				Name:    "skip-mirror-endpoints",
-				Usage:   "Endpoints to skip mirroring to Bose Cloud (comma-separated or multiple flags)",
-				EnvVars: []string{"SKIP_MIRROR_ENDPOINTS"},
-			},
 			&cli.StringSliceFlag{
 				Name:    "internal-paths",
 				Usage:   "Paths for internal requests (comma-separated or multiple flags)",
@@ -367,12 +352,6 @@ func main() {
 				Name:    "migration-dry-run",
 				Usage:   "Log what would be migrated without actually doing it",
 				EnvVars: []string{"MIGRATION_DRY_RUN"},
-			},
-			&cli.StringFlag{
-				Name:    "preferred-source",
-				Usage:   "Preferred source of truth (local or upstream)",
-				Value:   "local",
-				EnvVars: []string{"PREFERRED_SOURCE"},
 			},
 			&cli.StringFlag{
 				Name:    "stockholm-dir",
@@ -415,7 +394,6 @@ func main() {
 			server.SetVersionInfo(version, commit, date, repoURL)
 			server.SetDiscoverySettings(config.discoveryInterval, config.discoveryEnabled)
 			server.SetDNSSettings(persisted.DNSEnabled, strings.Join(persisted.DNSUpstream, ","), persisted.DNSBindAddr)
-			server.SetMirrorSettings(persisted.MirrorEnabled, persisted.MirrorEndpoints, persisted.SkipMirrorEndpoints, persisted.PreferredSource)
 			server.SetInternalPaths(persisted.InternalPaths)
 			server.SetSpotifyConfig(config.spotifyClientID, config.spotifyClientSecret, config.spotifyRedirectURI)
 			server.SetAmazonConfig(config.amazonClientID, config.amazonClientSecret, config.amazonRedirectURI)
@@ -555,9 +533,6 @@ type serviceConfig struct {
 	dnsEnabled          bool
 	dnsUpstream         string
 	dnsBind             string
-	mirrorEnabled       bool
-	mirrorEndpoints     []string
-	skipMirrorEndpoints []string
 	internalPaths       []string
 	discoveryEnabled    bool
 	discoveryInterval   time.Duration
@@ -576,7 +551,6 @@ type serviceConfig struct {
 	mgmtPassword        string
 	migrationEnabled    bool
 	migrationDryRun     bool
-	preferredSource     string
 	stockholmDir        string
 	stockholmBasePath   string
 }
@@ -648,13 +622,9 @@ func loadConfig(c *cli.Context) serviceConfig {
 	amazonProfileURL := c.String("amazon-profile-url")
 	mgmtUsername := c.String("mgmt-username")
 	mgmtPassword := c.String("mgmt-password")
-	mirrorEnabled := c.Bool("mirror-enabled")
-	mirrorEndpoints := c.StringSlice("mirror-endpoints")
-	skipMirrorEndpoints := c.StringSlice("skip-mirror-endpoints")
 	internalPaths := c.StringSlice("internal-paths")
 	migrationEnabled := c.Bool("migration-enabled")
 	migrationDryRun := c.Bool("migration-dry-run")
-	preferredSource := c.String("preferred-source")
 	stockholmDir := c.String("stockholm-dir")
 	stockholmBasePath := c.String("stockholm-base-path")
 
@@ -673,9 +643,6 @@ func loadConfig(c *cli.Context) serviceConfig {
 		dnsEnabled:          dnsEnabled,
 		dnsUpstream:         dnsUpstream,
 		dnsBind:             dnsBind,
-		mirrorEnabled:       mirrorEnabled,
-		mirrorEndpoints:     mirrorEndpoints,
-		skipMirrorEndpoints: skipMirrorEndpoints,
 		internalPaths:       internalPaths,
 		discoveryEnabled:    discoveryEnabled,
 		discoveryInterval:   discoveryInterval,
@@ -694,7 +661,6 @@ func loadConfig(c *cli.Context) serviceConfig {
 		mgmtPassword:        mgmtPassword,
 		migrationEnabled:    migrationEnabled,
 		migrationDryRun:     migrationDryRun,
-		preferredSource:     preferredSource,
 		stockholmDir:        stockholmDir,
 		stockholmBasePath:   stockholmBasePath,
 	}
@@ -782,10 +748,6 @@ func applyPersistedSettings(ds *datastore.DataStore, config *serviceConfig) data
 		config.dnsBind = persisted.DNSBindAddr
 	}
 
-	config.mirrorEnabled = persisted.MirrorEnabled
-	config.mirrorEndpoints = persisted.MirrorEndpoints
-	config.skipMirrorEndpoints = persisted.SkipMirrorEndpoints
-	config.preferredSource = persisted.PreferredSource
 	config.internalPaths = persisted.InternalPaths
 
 	// CLI/env args take precedence; only apply persisted credentials when not set via CLI.
@@ -824,21 +786,17 @@ func applyPersistedMusicServiceCredentials(config *serviceConfig, persisted data
 
 func createDefaultSettings(ds *datastore.DataStore, config serviceConfig) datastore.Settings {
 	settings := datastore.Settings{
-		ServerURL:           config.serverURL,
-		HTTPServerURL:       config.httpsServerURL,
-		RedactLogs:          config.redact,
-		LogBodies:           config.logBody,
-		RecordInteractions:  config.record,
-		DiscoveryEnabled:    config.discoveryEnabled,
-		DiscoveryInterval:   config.discoveryInterval.String(),
-		DNSEnabled:          config.dnsEnabled,
-		DNSUpstream:         strings.Split(config.dnsUpstream, ","),
-		DNSBindAddr:         config.dnsBind,
-		MirrorEnabled:       config.mirrorEnabled,
-		MirrorEndpoints:     config.mirrorEndpoints,
-		SkipMirrorEndpoints: config.skipMirrorEndpoints,
-		PreferredSource:     config.preferredSource,
-		InternalPaths:       config.internalPaths,
+		ServerURL:          config.serverURL,
+		HTTPServerURL:      config.httpsServerURL,
+		RedactLogs:         config.redact,
+		LogBodies:          config.logBody,
+		RecordInteractions: config.record,
+		DiscoveryEnabled:   config.discoveryEnabled,
+		DiscoveryInterval:  config.discoveryInterval.String(),
+		DNSEnabled:         config.dnsEnabled,
+		DNSUpstream:        strings.Split(config.dnsUpstream, ","),
+		DNSBindAddr:        config.dnsBind,
+		InternalPaths:      config.internalPaths,
 		Shortcuts: map[string]int{
 			"/.well-known/appspecific/com.chrome.devtools.json": http.StatusNotFound,
 			"/sw.js": http.StatusNotFound,
@@ -900,7 +858,6 @@ func setupRouter(server *handlers.Server, stockholmHandler *stockholm.Handler) *
 	r.Use(middleware.Recoverer)
 	r.Use(server.PeerObserverMiddleware)
 	r.Use(server.ShortcutMiddleware)
-	r.Use(server.MirrorMiddleware)
 	r.Use(server.RecordMiddleware)
 
 	r.Get("/", server.HandleRoot)
@@ -1173,8 +1130,6 @@ func setupRouter(server *handlers.Server, stockholmHandler *stockholm.Handler) *
 		r.Get("/interaction-stats", server.HandleGetInteractionStats)
 		r.Get("/interactions", server.HandleListInteractions)
 		r.Get("/interaction-content", server.HandleGetInteractionContent)
-		r.Get("/parity-mismatches", server.HandleListParityMismatches)
-		r.Delete("/parity-mismatches", server.HandleClearParityMismatches)
 		r.Get("/interactions/sessions/{session}/download", server.HandleDownloadSession)
 		r.Delete("/interactions/sessions/{session}", server.HandleDeleteSession)
 		r.Delete("/interactions/sessions", server.HandleCleanupSessions)

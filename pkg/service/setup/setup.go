@@ -104,11 +104,6 @@ type MigrationSummary struct {
 	// observe the SSH-ping cost in the wild.
 	ResolveIPDurationMS int64 `json:"resolve_ip_duration_ms,omitempty"`
 
-	MirrorEnabled       bool     `json:"mirror_enabled"`
-	MirrorEndpoints     []string `json:"mirror_endpoints,omitempty"`
-	SkipMirrorEndpoints []string `json:"skip_mirror_endpoints,omitempty"`
-	PreferredSource     string   `json:"preferred_source,omitempty"`
-
 	// Telnet (port 17000) preflight state — populated when the user is about to
 	// or has just used MigrationMethodTelnet.
 	TelnetReachable      bool   `json:"telnet_reachable"`
@@ -347,17 +342,6 @@ func (m *Manager) GetMigrationSummary(deviceIP, targetURL, proxyURL string, opti
 
 	// 3. Provide HTTPS URL for testing (consumed by the migration UI)
 	summary.ServerHTTPSURL = m.buildServerHTTPSURL(targetURL)
-
-	// 4. Mirroring settings
-	if m.DataStore != nil {
-		settings, err := m.DataStore.GetSettings()
-		if err == nil {
-			summary.MirrorEnabled = settings.MirrorEnabled
-			summary.MirrorEndpoints = settings.MirrorEndpoints
-			summary.SkipMirrorEndpoints = settings.SkipMirrorEndpoints
-			summary.PreferredSource = settings.PreferredSource
-		}
-	}
 
 	// 5. Merge telnet preflight results (started in parallel at the top).
 	telnetResult := <-telnetCh

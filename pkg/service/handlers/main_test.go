@@ -11,7 +11,6 @@ func setupRouter(targetURL string, ds *datastore.DataStore) (*chi.Mux, *Server) 
 	r := chi.NewRouter()
 	r.Use(server.OriginMiddleware)
 	r.Use(server.ShortcutMiddleware)
-	r.Use(server.MirrorMiddleware)
 	r.Use(server.RecordMiddleware)
 
 	r.Get("/", server.HandleRoot)

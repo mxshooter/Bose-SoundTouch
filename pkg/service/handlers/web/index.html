@@ -30,14 +30,11 @@
         <button class="tab-btn" onclick="openTab(event, 'tab-migration')">
             4. Migration
         </button>
-        <button class="tab-btn" onclick="openTab(event, 'tab-interactions')">
-            5. Interactions & Events
-        </button>
-        <button class="tab-btn" onclick="openTab(event, 'tab-parity')">
-            6. Parity & Mirroring
-        </button>
-        <button class="tab-btn" onclick="openTab(event, 'tab-account')">
-            7. Local Account
+    <button class="tab-btn" onclick="openTab(event, 'tab-interactions')">
+        5. Interactions & Events
+    </button>
+    <button class="tab-btn" onclick="openTab(event, 'tab-account')">
+            6. Local Account
         </button>
     </div>
 
@@ -224,52 +221,6 @@
                                 <strong>Port 53</strong> is required for actual
                                 migration)</span
                     >
-                </div>
-            </div>
-        </div>
-        <div style="margin-bottom: 20px">
-            <strong>Endpoint Mirroring:</strong>
-            <div style="margin-top: 5px">
-                <label style="display: block; margin-bottom: 5px">
-                    <input type="checkbox" id="mirror-enabled"/> Enable
-                    Background Mirroring to Bose Cloud
-                </label>
-                <div style="margin-left: 20px; margin-bottom: 5px">
-                    <label style="display: block; margin-bottom: 5px">
-                        <input type="checkbox" id="preferred-source-upstream"/>
-                        Prefer Upstream Response for Mirrored Endpoints
-                    </label>
-                    <label for="mirror-endpoints">Mirror Endpoints (one per line, supports * wildcards):</label><br/>
-                    <textarea
-                        id="mirror-endpoints"
-                        rows="4"
-                        style="width: 100%; max-width: 600px; margin-top: 5px; font-family: monospace;"
-                        placeholder="/streaming/account/*/device/*/recent&#10;/accounts/*/devices/*/presets/*"
-                    ></textarea>
-                    <label for="skip-mirror-endpoints" style="display: block; margin-top: 10px;">Skip Mirror Endpoints (local only, one per line):</label>
-                    <textarea
-                        id="skip-mirror-endpoints"
-                        rows="2"
-                        style="width: 100%; max-width: 600px; margin-top: 5px; font-family: monospace;"
-                        placeholder="/oauth/device/*/music/musicprovider/*/token/cs3&#10;/oauth/device/*/music/musicprovider/*/token"
-                    ></textarea>
-                    <div
-                        class="info-box"
-                        style="
-                                    margin-top: 5px;
-                                    font-size: 0.85em;
-                                    padding: 10px;
-                                "
-                    >
-                        <strong>Note:</strong> Mirroring sends matching
-                        requests (including full headers) to the
-                        official Bose servers for parity comparison. If
-                        <em>Redact Sensitive Data</em> is enabled in
-                        Proxy Settings, credentials will be masked in
-                        <strong>logs and recordings</strong>, but full
-                        headers are always sent to Bose to ensure
-                        service compatibility.
-                    </div>
                 </div>
             </div>
         </div>
@@ -1248,7 +1199,6 @@
                         <option value="upstream">
                             Upstream (Bose)
                         </option>
-                        <option value="mirror">Mirror (Bose)</option>
                     </select>
                 </div>
                 <div>
@@ -1487,160 +1437,7 @@
         </div>
     </div>
 
-    <!-- Tab 6: Parity & Mirroring -->
-    <div id="tab-parity" class="tab-content">
-        <h2>Parity Analysis</h2>
-        <p>
-            Detection of discrepancies between AfterTouch local
-            responses and official Bose Cloud responses for mirrored
-            endpoints.
-        </p>
-
-        <div class="summary-box">
-            <div
-                style="
-                            display: flex;
-                            justify-content: space-between;
-                            align-items: center;
-                            margin-bottom: 15px;
-                        "
-            >
-                <h3 style="margin: 0">Parity Mismatches</h3>
-                <div style="display: flex; gap: 10px">
-                    <button onclick="fetchParityMismatches()">
-                        Refresh Mismatches
-                    </button>
-                    <button
-                        onclick="clearParityMismatches()"
-                        class="btn-danger"
-                    >
-                        Clear All Records
-                    </button>
-                </div>
-            </div>
-
-            <div
-                id="parity-list-container"
-                style="max-height: 500px; overflow-y: auto"
-            >
-                <table style="width: 100%; border-collapse: collapse">
-                    <thead>
-                    <tr
-                        style="
-                                        text-align: left;
-                                        border-bottom: 2px solid #eee;
-                                    "
-                    >
-                        <th style="padding: 8px">Time</th>
-                        <th style="padding: 8px">Method</th>
-                        <th style="padding: 8px">Path</th>
-                        <th style="padding: 8px">Reasons</th>
-                        <th style="padding: 8px">Action</th>
-                    </tr>
-                    </thead>
-                    <tbody id="parity-mismatches-list">
-                    <tr>
-                        <td
-                            colspan="5"
-                            style="
-                                            padding: 20px;
-                                            text-align: center;
-                                            color: #666;
-                                        "
-                        >
-                            Loading mismatches...
-                        </td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <div
-            id="parity-diff-view"
-            class="summary-box"
-            style="display: none; margin-top: 20px"
-        >
-            <div
-                style="
-                            display: flex;
-                            justify-content: space-between;
-                            align-items: center;
-                            margin-bottom: 15px;
-                        "
-            >
-                <h3 style="margin: 0">
-                    Mismatch Detail:
-                    <span id="diff-path-display"></span>
-                </h3>
-                <button onclick="document.getElementById('parity-diff-view').style.display = 'none'">Close Detail
-                </button>
-            </div>
-
-            <div
-                style="
-                            margin-bottom: 15px;
-                            padding: 10px;
-                            background: #fff4f4;
-                            border: 1px solid #f5c6cb;
-                            border-radius: 4px;
-                            color: #721c24;
-                        "
-            >
-                <strong>Detection Reasons:</strong>
-                <ul
-                    id="diff-reasons-list"
-                    style="margin: 5px 0 0 0; padding-left: 20px"
-                ></ul>
-            </div>
-
-            <div id="diff-size-warning" style="display: none; margin-bottom: 15px; padding: 10px; background: #fff3cd; border: 1px solid #ffeeba; border-radius: 4px; color: #856404;">
-                ⚠️ <strong>Large Payload:</strong> Rich diff highlighting is disabled to prevent a browser freeze. Showing raw comparison instead.
-                <button id="force-rich-diff-btn" style="margin-left: 10px; font-size: 0.8em; cursor: pointer;">Show Rich Diff Anyway</button>
-            </div>
-
-            <div class="diff-container" style="margin-top: 15px">
-                <div class="diff-pane">
-                            <span
-                                class="config-header"
-                                style="background: #eefbff; color: #0056b3"
-                            >Local Response (AfterTouch)</span
-                            >
-                    <div
-                        id="diff-local-meta"
-                        style="
-                                    font-size: 0.8em;
-                                    margin-bottom: 5px;
-                                    color: #666;
-                                "
-                    ></div>
-                    <pre
-                        id="diff-local-body"
-                    ></pre>
-                </div>
-                <div class="diff-pane">
-                            <span
-                                class="config-header"
-                                style="background: #fff4e6; color: #856404"
-                            >Upstream Response (Bose)</span
-                            >
-                    <div
-                        id="diff-upstream-meta"
-                        style="
-                                    font-size: 0.8em;
-                                    margin-bottom: 5px;
-                                    color: #666;
-                                "
-                    ></div>
-                    <pre
-                        id="diff-upstream-body"
-                    ></pre>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tab 7: Local Account -->
+    <!-- Tab 6: Local Account -->
     <div id="tab-account" class="tab-content">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <h2>Local Account Details</h2>

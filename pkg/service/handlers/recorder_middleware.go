@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"path"
 )
 
 // RecordMiddleware returns a middleware that records "self" requests and responses.
@@ -22,7 +23,7 @@ func (s *Server) RecordMiddleware(next http.Handler) http.Handler {
 		s.mu.RUnlock()
 
 		for _, pattern := range internalPaths {
-			if matchPattern(pattern, r.URL.Path) {
+			if matched, _ := path.Match(pattern, r.URL.Path); matched {
 				next.ServeHTTP(w, r)
 				return
 			}
