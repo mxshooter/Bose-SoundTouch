@@ -530,11 +530,13 @@ function openTab(evt, tabId) {
 window.addEventListener('popstate', function() {
     const hash = window.location.hash.slice(1);
     const [tabId, extra] = hash.split('?');
-    if (tabId && document.getElementById(tabId)) {
-        openTab(null, tabId);
-        if (tabId === "tab-migration" && extra) {
-            selectMigrationDevice(extra);
-        }
+    if (!tabId || !document.getElementById(tabId)) {
+        openTab(null, "tab-overview");
+        return;
+    }
+    openTab(null, tabId);
+    if (tabId === "tab-migration") {
+        selectMigrationDevice(extra);
     }
 });
 
@@ -548,6 +550,8 @@ function selectMigrationDevice(deviceId) {
                 return;
             }
         }
+        sel.value = "";
+        document.getElementById("migration-summary").style.display = "none";
     }
 }
 
@@ -1589,7 +1593,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const [tabId, extra] = hash.split('?');
     if (tabId && document.getElementById(tabId)) {
         openTab(null, tabId);
-        if (tabId === "tab-migration" && extra) {
+        if (tabId === "tab-migration") {
             selectMigrationDevice(extra);
         }
     }
