@@ -21,6 +21,7 @@ This guide covers everything you need to know to deploy robust, scalable SoundTo
     - [Kubernetes Deployment](#kubernetes-deployment)
     - [Systemd Service](#systemd-service)
     - [Raspberry Pi Installer](#raspberry-pi-installer)
+    - [Keenetic Router](#keenetic-router)
 - [Maintenance Operations](#maintenance-operations)
 
 ---
@@ -976,6 +977,12 @@ WantedBy=multi-user.target
 For users deploying on a Raspberry Pi, we provide a specialized automated installer that handles everything from architecture detection to security hardening.
 
 See the [Raspberry Pi Installation Guide](RASPBERRY-PI.md) for step-by-step instructions.
+
+#### Keenetic Router
+
+For users deploying on a Keenetic router (Hopper, Titan, Ultra, Giga, Hero, Extra, Omni), we provide an automated installer that handles everything from architecture detection to auto-start configuration.
+
+See the [Keenetic Router Installation Guide](KEENETIC.md) for step-by-step instructions.
 
 ---
 
