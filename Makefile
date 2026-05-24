@@ -114,6 +114,36 @@ build-darwin:
 	GOOS=darwin GOARCH=amd64 $(GOBUILD) $(BUILDFLAGS) -o $(BUILD_DIR)/$(BACKUP_NAME)-darwin-amd64 $(BACKUP_PATH)
 	GOOS=darwin GOARCH=arm64 $(GOBUILD) $(BUILDFLAGS) -o $(BUILD_DIR)/$(BACKUP_NAME)-darwin-arm64 $(BACKUP_PATH)
 
+build-keenetic-arm64:
+	@echo "Building for Keenetic ARM64 (Hopper/Titan/Hero DSL, MediaTek MT7981)..."
+	@mkdir -p $(BUILD_DIR)
+	GOOS=linux GOARCH=arm64 CGO_ENABLED=0 $(GOBUILD) $(BUILDFLAGS) -o $(BUILD_DIR)/$(SERVICE_NAME)-keenetic-arm64 $(SERVICE_PATH)
+	GOOS=linux GOARCH=arm64 CGO_ENABLED=0 $(GOBUILD) $(BUILDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-keenetic-arm64 $(BINARY_PATH)
+	GOOS=linux GOARCH=arm64 CGO_ENABLED=0 $(GOBUILD) $(BUILDFLAGS) -o $(BUILD_DIR)/$(BACKUP_NAME)-keenetic-arm64 $(BACKUP_PATH)
+
+build-keenetic-arm:
+	@echo "Building for Keenetic ARM (Ultra/Giga/Hero, ARM Cortex-A)..."
+	@mkdir -p $(BUILD_DIR)
+	GOOS=linux GOARCH=arm GOARM=7 CGO_ENABLED=0 $(GOBUILD) $(BUILDFLAGS) -o $(BUILD_DIR)/$(SERVICE_NAME)-keenetic-arm $(SERVICE_PATH)
+	GOOS=linux GOARCH=arm GOARM=7 CGO_ENABLED=0 $(GOBUILD) $(BUILDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-keenetic-arm $(BINARY_PATH)
+	GOOS=linux GOARCH=arm GOARM=7 CGO_ENABLED=0 $(GOBUILD) $(BUILDFLAGS) -o $(BUILD_DIR)/$(BACKUP_NAME)-keenetic-arm $(BACKUP_PATH)
+
+build-keenetic-mips:
+	@echo "Building for Keenetic MIPS (Extra/Omni/Lite, MediaTek MT7621)..."
+	@mkdir -p $(BUILD_DIR)
+	GOOS=linux GOARCH=mips CGO_ENABLED=0 $(GOBUILD) $(BUILDFLAGS) -o $(BUILD_DIR)/$(SERVICE_NAME)-keenetic-mips $(SERVICE_PATH)
+	GOOS=linux GOARCH=mips CGO_ENABLED=0 $(GOBUILD) $(BUILDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-keenetic-mips $(BINARY_PATH)
+	GOOS=linux GOARCH=mips CGO_ENABLED=0 $(GOBUILD) $(BUILDFLAGS) -o $(BUILD_DIR)/$(BACKUP_NAME)-keenetic-mips $(BACKUP_PATH)
+
+build-keenetic-mipsle:
+	@echo "Building for Keenetic MIPS-LE (Extra/Omni/Lite, MediaTek MT7621)..."
+	@mkdir -p $(BUILD_DIR)
+	GOOS=linux GOARCH=mipsle CGO_ENABLED=0 $(GOBUILD) $(BUILDFLAGS) -o $(BUILD_DIR)/$(SERVICE_NAME)-keenetic-mipsle $(SERVICE_PATH)
+	GOOS=linux GOARCH=mipsle CGO_ENABLED=0 $(GOBUILD) $(BUILDFLAGS) -o $(BUILD_DIR)/$(BINARY_NAME)-keenetic-mipsle $(BINARY_PATH)
+	GOOS=linux GOARCH=mipsle CGO_ENABLED=0 $(GOBUILD) $(BUILDFLAGS) -o $(BUILD_DIR)/$(BACKUP_NAME)-keenetic-mipsle $(BACKUP_PATH)
+
+build-keenetic: build-keenetic-arm64 build-keenetic-arm build-keenetic-mips build-keenetic-mipsle
+
 build-windows:
 	@echo "Building for Windows..."
 	@mkdir -p $(BUILD_DIR)
@@ -480,6 +510,10 @@ help:
 	@echo "  build-examples - Build only the example programs"
 	@echo "  build-all     - Build for all platforms"
 	@echo "  build-linux-armv7 - Build for Linux ARMv7 (kernel 3.14+ compatible, CGO_ENABLED=0)"
+	@echo "  build-keenetic-arm64 - Build for Keenetic ARM64 (Hopper/Titan/Hero DSL)"
+	@echo "  build-keenetic-arm   - Build for Keenetic ARMv7 (Ultra/Giga/Hero)"
+	@echo "  build-keenetic-mips  - Build for Keenetic MIPS (Extra/Omni/Lite)"
+	@echo "  build-keenetic       - Build for all Keenetic routers"
 	@echo "  test          - Run tests"
 	@echo "  test-coverage - Run tests with coverage report"
 	@echo "  test-http-client         - Run .http integration tests via Docker Compose"
