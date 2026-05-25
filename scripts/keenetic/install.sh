@@ -17,6 +17,7 @@ set -euo pipefail
 
 VERSION="${VERSION:-v0.93.1}"
 BINARY_NAME="${BINARY_NAME:-soundtouch-service}"
+DATA_DIR=/tmp/data
 
 if [[ ! "$VERSION" =~ ^v ]]; then
   VERSION="v${VERSION}"
