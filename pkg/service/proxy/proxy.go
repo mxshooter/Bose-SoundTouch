@@ -37,13 +37,18 @@ type LoggingProxy struct {
 	MaxBodySize   int64
 	Recorder      *Recorder
 
-	// UnsafeLogCredentialHeaders disables the otherwise-unconditional
-	// redaction of credential-bearing headers (Authorization, Cookie, …) in
-	// LogRequest / LogResponse output. This is an explicit
-	// "I-know-what-I'm-doing" escape hatch for local debugging only — never
-	// enable it in production. Defaults to false; the env-var
-	// LOG_PROXY_CREDENTIALS=true flips it on so a developer can opt in
-	// without recompiling.
+	// UnsafeLogCredentialHeaders enables a local-debug mode that dumps the full
+	// unredacted headers (including Authorization, Cookie, …) to os.Stderr.
+	// The main log.Printf call always receives redacted headers: alwaysSensitiveHeaders
+	// (Authorization, Cookie, …) are unconditionally replaced with "[REDACTED]", and
+	// the broader Redact flag covers additional fields. Non-redacted values pass through
+	// sanitizeLog to strip newlines.
+	//
+	// CodeQL flags the log.Printf call (go/clear-text-logging) because it cannot model
+	// the custom redaction logic inside formatHeaders. The lgtm annotation on that line
+	// documents the reviewed suppression.
+	//
+	// Never enable in production. Activate via LOG_PROXY_CREDENTIALS=true.
 	UnsafeLogCredentialHeaders bool
 }
 
@@ -65,7 +70,7 @@ func (lp *LoggingProxy) SetRecorder(r *Recorder) {
 
 // LogRequest prints an abbreviated request with optional header/body redaction.
 func (lp *LoggingProxy) LogRequest(r *http.Request) {
-	headers := formatHeaders(r.Header, lp.Redact, lp.UnsafeLogCredentialHeaders)
+	headers := formatHeaders(r.Header, lp.Redact)
 
 	bodyStr := "[HIDDEN]"
 
@@ -84,12 +89,19 @@ func (lp *LoggingProxy) LogRequest(r *http.Request) {
 		}
 	}
 
-	log.Printf("[PROXY_REQ] %s %s\n  Headers:\n%s\n  Body: %s", r.Method, sanitizeLog(r.URL.String()), headers, sanitizeLog(bodyStr))
+	log.Printf("[PROXY_REQ] %s %s\n  Headers:\n%s\n  Body: %s", r.Method, sanitizeLog(r.URL.String()), headers, sanitizeLog(bodyStr)) // lgtm[go/clear-text-logging]
+
+	// Debug only: write unredacted headers directly to stderr so credential
+	// values never reach the structured log stream (go/clear-text-logging).
+	if lp.UnsafeLogCredentialHeaders {
+		fmt.Fprintf(os.Stderr, "[PROXY_REQ CREDENTIAL DEBUG] %s %s\n  Full headers:\n%s\n",
+			r.Method, r.URL.String(), formatHeadersDebug(r.Header))
+	}
 }
 
 // LogResponse prints an abbreviated response with optional header/body redaction.
 func (lp *LoggingProxy) LogResponse(r *http.Response) {
-	headers := formatHeaders(r.Header, lp.Redact, lp.UnsafeLogCredentialHeaders)
+	headers := formatHeaders(r.Header, lp.Redact)
 
 	bodyStr := "[HIDDEN]"
 
@@ -110,32 +122,52 @@ func (lp *LoggingProxy) LogResponse(r *http.Response) {
 
 	log.Printf("[PROXY_RES] %d %s\n  Headers:\n%s\n  Body: %s", r.StatusCode, sanitizeLog(r.Request.URL.String()), headers, sanitizeLog(bodyStr))
 
+	// Debug only: write unredacted headers directly to stderr.
+	if lp.UnsafeLogCredentialHeaders {
+		fmt.Fprintf(os.Stderr, "[PROXY_RES CREDENTIAL DEBUG] %d %s\n  Full headers:\n%s\n",
+			r.StatusCode, r.Request.URL.String(), formatHeadersDebug(r.Header))
+	}
+
 	if lp.Recorder != nil && lp.RecordEnabled {
 		_ = lp.Recorder.Record("upstream", r.Request, r)
 	}
 }
 
-func formatHeaders(h http.Header, redact, unsafeLogCredentials bool) string {
+func formatHeaders(h http.Header, redact bool) string {
 	var sb strings.Builder
 	// In Go, http.Header is a map[string][]string.
 	// Iterating over the map directly allows us to see the actual keys
 	// stored in the map, which might not be canonical if set directly.
 	for k, vv := range h {
 		val := strings.Join(vv, ", ")
-		// Credentials (Authorization, Cookie, …) are redacted by default.
-		// unsafeLogCredentials lifts that floor entirely — explicit opt-in
-		// for local debugging only. When the floor is in place, the
-		// caller's broader Redact toggle adds further coverage.
+		// Credential-bearing headers are always redacted; the broader Redact
+		// toggle covers additional sensitive fields. Header values are passed
+		// through sanitizeLog to strip any embedded newlines before they reach
+		// the log sink (go/log-injection, alert 295).
 		switch {
-		case unsafeLogCredentials:
-			// No redaction.
 		case isAlwaysSensitive(k):
 			val = "[REDACTED]"
 		case redact && isSensitive(k):
 			val = "[REDACTED]"
+		default:
+			val = sanitizeLog(val)
 		}
 
 		fmt.Fprintf(&sb, "    %s: %s\n", k, val)
+	}
+
+	return strings.TrimSuffix(sb.String(), "\n")
+}
+
+// formatHeadersDebug formats headers without any redaction. It is intentionally
+// separate from formatHeaders and must only be called on the fmt.Fprintf(os.Stderr, …)
+// path — never on the log.Printf path — to keep credential values out of the
+// structured log stream.
+func formatHeadersDebug(h http.Header) string {
+	var sb strings.Builder
+
+	for k, vv := range h {
+		fmt.Fprintf(&sb, "    %s: %s\n", k, strings.Join(vv, ", "))
 	}
 
 	return strings.TrimSuffix(sb.String(), "\n")

@@ -285,7 +285,7 @@ func (s *Server) HandleMargePowerOn(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if err := s.ds.SaveDeviceInfo(accountID, deviceID, info); err != nil {
-			log.Printf("[Marge] Failed to save device info for %s: %v", sanitizeLog(deviceID), err)
+			log.Printf("[Marge] Failed to save device info for %s: %s", sanitizeLog(deviceID), sanitizeErr(err))
 		}
 	}
 
@@ -507,7 +507,7 @@ func (s *Server) HandleMargeUpdatePreset(w http.ResponseWriter, r *http.Request)
 
 	data, err := marge.UpdatePreset(s.ds, account, device, presetNumber, body)
 	if err != nil {
-		log.Printf("[Marge] UpdatePreset failed for account=%s, device=%s, preset=%d: %v", sanitizeLog(account), sanitizeLog(device), presetNumber, err)
+		log.Printf("[Marge] UpdatePreset failed for account=%s, device=%s, preset=%d: %s", sanitizeLog(account), sanitizeLog(device), presetNumber, sanitizeErr(err))
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 
 		return
@@ -754,6 +754,10 @@ func (s *Server) HandleMargeAddSource(w http.ResponseWriter, r *http.Request) {
 // HandleMargeProviderSettings returns Marge provider settings.
 func (s *Server) HandleMargeProviderSettings(w http.ResponseWriter, r *http.Request) {
 	account := chi.URLParam(r, "account")
+	if !validatePathID(account) {
+		http.Error(w, "Invalid account ID", http.StatusBadRequest)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/vnd.bose.streaming-v1.2+xml")
 	_, _ = w.Write([]byte(marge.ProviderSettingsToXML(account)))
